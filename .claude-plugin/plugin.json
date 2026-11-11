@@ -1,0 +1,24 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "zesia-consult",
+  "version": "0.1.9",
+  "description": "则灵 (zesia) independent consultation for Claude Code: prepare a scoped packet, confirm locally, send it, and return structured advice for the agent to assess.",
+  "author": {
+    "name": "Zesia"
+  },
+  "homepage": "https://zesia.dev",
+  "license": "UNLICENSED",
+  "keywords": [
+    "zesia",
+    "consult",
+    "second-opinion",
+    "advice",
+    "review"
+  ],
+  "skills": [
+    "./skills/"
+  ],
+  "commands": [
+    "./commands/"
+  ]
+}

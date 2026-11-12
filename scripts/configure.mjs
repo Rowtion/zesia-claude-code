@@ -1,1 +1,1 @@
-await import('@zesia/client/configure');
+await import('@zesia/runtime/configure');

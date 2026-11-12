@@ -1,1 +1,1 @@
-export * from '@zesia/client/config';
+export * from '@zesia/runtime/config';

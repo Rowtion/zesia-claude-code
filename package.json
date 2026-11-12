@@ -18,7 +18,7 @@
     "url": "https://github.com/Rowtion/zesia-claude-code.git"
   },
   "dependencies": {
-    "@zesia/client": "https://github.com/Rowtion/zesia-client/releases/download/v0.1.0/zesia-client-0.1.0.tgz"
+    "@zesia/runtime": "https://github.com/Rowtion/zesia-skill/releases/download/v0.2.0/zesia-runtime-0.2.0.tgz"
   },
   "devDependencies": {
     "esbuild": "0.25.12",

@@ -1,1 +1,1 @@
-export * from '@zesia/client/read-secret';
+export * from '@zesia/runtime/read-secret';

@@ -1,1 +1,1 @@
-export * from '@zesia/client/protocol';
+export * from '@zesia/runtime/protocol';

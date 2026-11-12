@@ -9,6 +9,7 @@
 
 ```sh
 unzip zesia-consult-claude-code-0.1.9.zip -d zesia-consult
+node zesia-consult/scripts/install-a2a.mjs       # install pinned transport without administrator access
 node zesia-consult/scripts/configure.mjs          # 粘贴单独获得的试用 token
 claude --plugin-dir ./zesia-consult
 ```
@@ -30,7 +31,7 @@ claude --plugin-dir ./zesia-consult
 
 ## 安装
 
-统一安装入口：[zesia.dev/install](https://zesia.dev/install)，Agent 安装指南：[install.md](https://zesia.dev/install.md)。统一安装入口已覆盖 Claude Code、DSH 与通用 Skill；MCP 适配器独立维护在 `Rowtion/zesia-mcp`。以下本地命令保留供开发验收使用。
+统一安装入口：[zesia.dev/install](https://zesia.dev/install)，Agent 安装指南：[install.md](https://zesia.dev/install.md)。统一安装入口已覆盖 Claude Code、DSH 与通用 Skill。本地 MCP 工具桥仅用于宿主接线；不发行独立 Consult MCP 产品。以下本地命令保留供开发验收使用。
 
 ### 方式一：本次会话临时加载
 

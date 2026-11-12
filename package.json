@@ -1,6 +1,6 @@
 {
   "name": "@zesia/claude-code-plugin",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "description": "\u5219\u7075 independent consultation plugin for Claude Code",
   "type": "module",
@@ -18,7 +18,7 @@
     "url": "https://github.com/Rowtion/zesia-claude-code.git"
   },
   "dependencies": {
-    "@zesia/runtime": "https://github.com/Rowtion/zesia-skill/releases/download/v0.2.0/zesia-runtime-0.2.0.tgz"
+    "@zesia/runtime": "https://github.com/Rowtion/zesia-skill/releases/download/v0.2.1/zesia-runtime-0.2.1.tgz"
   },
   "devDependencies": {
     "esbuild": "0.25.12",

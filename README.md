@@ -13,7 +13,7 @@ Read https://zesia.dev/install.md and install Zesia for this agent.
 For the exact current repository version, download the ZIP and checksum from [Releases](https://github.com/Rowtion/zesia-claude-code/releases), verify the archive, and extract it into a durable directory:
 
 ```sh
-unzip zesia-consult-claude-code-0.1.9.zip -d zesia-consult
+unzip zesia-consult-claude-code-0.1.10.zip -d zesia-consult
 node zesia-consult/scripts/install-a2a.mjs
 node zesia-consult/scripts/configure.mjs
 claude --plugin-dir ./zesia-consult

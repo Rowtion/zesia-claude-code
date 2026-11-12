@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "zesia",
-  "description": "则灵 consultation plugins for Claude Code",
+  "description": "\u5219\u7075 consultation plugins for Claude Code",
   "owner": {
     "name": "Zesia"
   },
@@ -9,8 +9,8 @@
     {
       "name": "zesia-consult",
       "source": "./",
-      "description": "则灵 independent consultation for Claude Code: prepare, confirm, send, and assess structured advice.",
-      "version": "0.1.7",
+      "description": "\u5219\u7075 independent consultation for Claude Code: prepare, confirm, send, and assess structured advice.",
+      "version": "0.1.10",
       "author": {
         "name": "Zesia"
       },

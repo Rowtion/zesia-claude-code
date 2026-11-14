@@ -85,6 +85,6 @@ test('stdio server completes a real MCP handshake', async t => {
   assert.equal(lines[1].id, 2);
   assert.deepEqual(
     lines[1].result.tools.map(tool => tool.name).sort(),
-    ['zesia_consult', 'zesia_context', 'zesia_feedback', 'zesia_followup', 'zesia_result', 'zesia_send', 'zesia_settings'],
+    ['zesia_consult', 'zesia_context', 'zesia_feedback', 'zesia_followup', 'zesia_result', 'zesia_settings', 'zesia_wait'],
   );
 });

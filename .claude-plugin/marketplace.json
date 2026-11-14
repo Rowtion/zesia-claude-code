@@ -10,7 +10,7 @@
       "name": "zesia-consult",
       "source": "./",
       "description": "\u5219\u7075 independent consultation for Claude Code: prepare, confirm, send, and assess structured advice.",
-      "version": "0.1.10",
+      "version": "0.2.0",
       "author": {
         "name": "Zesia"
       },

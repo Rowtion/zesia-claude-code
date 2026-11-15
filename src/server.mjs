@@ -3,7 +3,7 @@ import { createServer, serveStdio } from './protocol.mjs';
 import { createTools } from './tools.mjs';
 
 const { tools, close } = createTools();
-const server = createServer({ name: 'zesia-consult', version: '0.2.0', tools });
+const server = createServer({ name: 'zesia-consult', version: '0.2.1', tools });
 
 process.on('uncaughtException', error => {
   // stdout belongs to MCP. Exit rather than keep serving with inconsistent

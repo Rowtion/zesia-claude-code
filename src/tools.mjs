@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { setTimeout as pause } from 'node:timers/promises';
 import { ADOPTION_INSTRUCTIONS } from '@zesia/runtime/tools';
 import { destinationOf, readConfig, REQUESTER } from '@zesia/runtime/config';
-import { captureEvidence, mergeEvidence, scanPacket } from '@zesia/runtime/evidence';
+import { captureAttachments, captureEvidence, mergeAttachments, mergeEvidence, scanPacket } from '@zesia/runtime/evidence';
 import { createPortable } from '../node_modules/@zesia/runtime/runtime.mjs';
 import { openOnlineBrowser, startOnlineReview } from '../node_modules/@zesia/runtime/review/online.mjs';
 import { consultOverA2A, recoverConsult } from './a2a.mjs';
@@ -13,8 +13,8 @@ export { ADOPTION_INSTRUCTIONS };
 
 const evidenceFilesSchema = {
   type: 'array',
-  maxItems: 3,
-  description: 'Top-level argument, never inside context. Original project file excerpts copied by the plugin; at most 200 lines and 6000 characters each. Never include credentials.',
+  maxItems: 16,
+  description: 'Top-level argument, never inside context. Original project file excerpts copied by the plugin; auto-chunked along line boundaries into up to 16 materials of 12,000 characters each. Never include credentials.',
   items: {
     type: 'object',
     additionalProperties: false,
@@ -23,6 +23,22 @@ const evidenceFilesSchema = {
       path: { type: 'string', description: 'Project-relative path.' },
       startLine: { type: 'integer', minimum: 1 },
       endLine: { type: 'integer', minimum: 1 },
+    },
+  },
+};
+
+const attachmentFilesSchema = {
+  type: 'array',
+  maxItems: 10,
+  description: 'Top-level argument, never inside context. Project images or documents (png, jpg, webp, gif, pdf, txt, md, json), at most 10 items and 6 MiB total.',
+  items: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['path'],
+    properties: {
+      id: { type: 'string', maxLength: 100 },
+      path: { type: 'string', description: 'Project-relative path.' },
+      description: { type: 'string', maxLength: 200 },
     },
   },
 };
@@ -78,13 +94,30 @@ const contextSchema = {
     },
     materials: {
       type: 'array',
-      maxItems: 8,
-      description: 'Evidence contents, at most 6000 characters each. A URL alone is not evidence.',
+      maxItems: 16,
+      description: 'Evidence contents, at most 16 items of 12000 characters each. A URL alone is not evidence.',
       items: {
         type: 'object',
         additionalProperties: false,
         required: ['id', 'content'],
-        properties: { id: { type: 'string', maxLength: 100 }, content: { type: 'string', maxLength: 6000 } },
+        properties: { id: { type: 'string', maxLength: 100 }, content: { type: 'string', maxLength: 12000 } },
+      },
+    },
+    attachments: {
+      type: 'array',
+      maxItems: 10,
+      description: 'Optional image or document attachments (png, jpg, webp, gif, pdf, txt, md, json), at most 10 items and 6 MiB total.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        required: ['id', 'mediaType', 'data'],
+        properties: {
+          id: { type: 'string', maxLength: 100 },
+          filename: { type: 'string', maxLength: 200 },
+          mediaType: { type: 'string', maxLength: 100 },
+          data: { type: 'string' },
+          description: { type: 'string', maxLength: 200 },
+        },
       },
     },
   },
@@ -215,6 +248,7 @@ export function createTools({
           brief: { type: 'string', minLength: 1, maxLength: 2000, description: 'The question for 则灵.' },
           context: contextSchema,
           evidenceFiles: evidenceFilesSchema,
+          attachmentFiles: attachmentFilesSchema,
         },
       },
       async handler(args) {
@@ -231,6 +265,8 @@ export function createTools({
           };
           const captured = await capture(args.evidenceFiles);
           if (captured.length) packet.context.materials = mergeEvidence(packet.context.materials || [], captured);
+          const capturedAttachments = args.attachmentFiles?.length ? await captureAttachments(args.attachmentFiles) : [];
+          if (capturedAttachments.length) packet.context.attachments = mergeAttachments(packet.context.attachments || [], capturedAttachments);
           scanPacket(packet);
           const prepared = await portable.prepare(packet);
           const value = await openBridge(prepared.draftId, {
@@ -327,6 +363,7 @@ export function createTools({
             },
           },
           evidenceFiles: evidenceFilesSchema,
+          attachmentFiles: attachmentFilesSchema,
         },
       },
       async handler(args) {

@@ -25,8 +25,8 @@ test('captureEvidence accepts the Read tool trailing empty line without changing
   const [material] = await captureEvidence([{ path: 'readme.md', startLine: 1, endLine: 3 }], { root });
   assert.ok(material.content.endsWith(source));
   assert.match(material.content, /^Source: readme\.md:1-3\n/);
-  await assert.rejects(captureEvidence([{ path: 'readme.md', startLine: 1, endLine: 4 }], { root }), /existing range/);
-  await assert.rejects(captureEvidence([{ path: 'readme.md', startLine: 3, endLine: 3 }], { root }), /existing range/);
+  await assert.rejects(captureEvidence([{ path: 'readme.md', startLine: 1, endLine: 4 }], { root }), /existing line range/);
+  await assert.rejects(captureEvidence([{ path: 'readme.md', startLine: 3, endLine: 3 }], { root }), /existing line range/);
 });
 
 test('captureEvidence refuses credential paths and path escape', async () => {
@@ -39,13 +39,16 @@ test('captureEvidence refuses credential paths and path escape', async () => {
   await assert.rejects(captureEvidence([{ path: join(outside, 'outside.txt') }], { root }), /outside/u);
 });
 
-test('captureEvidence enforces the 200-line and three-file limits', async () => {
+test('captureEvidence auto-chunks large files and enforces 16-material limit', async () => {
   const root = await project();
-  await writeFile(join(root, 'long.txt'), Array.from({ length: 250 }, (_, index) => `line ${index + 1}`).join('\n'));
-  await assert.rejects(captureEvidence([{ path: 'long.txt', startLine: 1, endLine: 250 }], { root }), /200 lines/u);
+  const line = '.card-item { display: flex; gap: 12px; padding: 16px; color: #111827; }\n';
+  await writeFile(join(root, 'long.css'), Array.from({ length: 300 }, (_, i) => `/* ${i + 1} */ ${line}`).join(''));
+  const chunks = await captureEvidence([{ path: 'long.css', startLine: 1, endLine: 300 }], { root });
+  assert.ok(chunks.length >= 2 && chunks.length <= 16);
+  for (const c of chunks) assert.ok(c.content.length <= 12000);
   await assert.rejects(
-    captureEvidence([{ path: 'long.txt' }, { path: 'long.txt' }, { path: 'long.txt' }, { path: 'long.txt' }], { root }),
-    /three/u,
+    captureEvidence(Array.from({ length: 17 }, () => ({ path: 'long.css', startLine: 1, endLine: 10 })), { root }),
+    /16/u,
   );
 });
 

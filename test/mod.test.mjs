@@ -19,7 +19,7 @@ const built = ts.transpileModule(source, {
   },
 }).outputText;
 
-async function harness({ submitError = false, response, consultError } = {}) {
+async function harness({ submitError = false, response, consultError, capture } = {}) {
   const module = { exports: {} };
   vm.runInNewContext(built, { module, exports: module.exports, h: (type, props, ...children) => ({ type, props, children }) });
   const hooks = new Map();
@@ -44,6 +44,7 @@ async function harness({ submitError = false, response, consultError } = {}) {
   const { tools, close: closeTools } = createTools({
     readConfiguration: async () => ({ url: remoteUrl, token: 'synthetic-claude-test-token', project: 'demo' }),
     openBrowser: false,
+    capture,
     requestConsult: async ({ contextId }) => {
       calls.network++;
       if (consultError) throw consultError;
@@ -126,7 +127,8 @@ for (const quality of [
   { deliveryKind: 'partial', qualityStatus: 'partial' },
 ]) {
   test(`Claude Code hands back ${quality.deliveryKind} with its actual review status`, async () => {
-    const { calls, run, close } = await harness({ response: {
+    let evidenceReads = 0;
+    const { calls, run, close } = await harness({ capture: async () => { evidenceReads++; return []; }, response: {
       ...quality,
       format: 'zesia.consult.v0',
       advice: 'Fixture result text.',
@@ -147,6 +149,21 @@ for (const quality of [
         } else {
           assert.match(result.content[0].text, /Partial review/);
         }
+      }
+      if (quality.deliveryKind === 'guidance') {
+        const consultId = 'classified-result';
+        assert.equal((await run('zesia_context', { consultId })).isError, true);
+        assert.equal((await run('zesia_feedback', { consultId, nextStep: 'Verify locally' })).isError, true);
+        for (const reference of [consultId, draftId]) {
+          const followup = await run('zesia_followup', {
+            consultId: reference,
+            answers: [{ requestId: 'q1', text: 'Synthetic answer', sourceRef: 'fixture.txt' }],
+            evidenceFiles: [{ path: 'fixture.txt' }],
+          });
+          assert.equal(followup.isError, true);
+          assert.match(followup.structuredContent.message, /Service guidance cannot be continued/);
+        }
+        assert.equal(evidenceReads, 1, 'Only initial preparation may inspect evidence');
       }
       assert.equal(calls.network, 1);
     } finally {

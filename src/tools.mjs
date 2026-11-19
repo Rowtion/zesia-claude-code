@@ -236,8 +236,9 @@ export function createTools({
   }
 
   async function recordCompleted(draftId, value) {
-    if (value?.ok && value.status === 'completed' && value.consultId && !isServiceGuidance(value)) {
+    if (value?.ok && value.status === 'completed' && value.consultId) {
       consultToDraft.set(value.consultId, draftId);
+      if (isServiceGuidance(value)) return value;
       const inspected = await portable.inspect(draftId).catch(() => null);
       completedResults.set(value.consultId, {
         draftId,
@@ -382,6 +383,10 @@ export function createTools({
       async handler(args) {
         try {
           const parentDraftId = consultToDraft.get(args.consultId) || args.consultId;
+          const parent = await portable.inspect(parentDraftId);
+          if (isServiceGuidance(parent.result)) {
+            throw new Error('Service guidance cannot be continued because no expert review was completed.');
+          }
           const captured = await capture(args.evidenceFiles);
           const answers = captured.length
             ? args.answers.map((a, i) => i === 0 ? { ...a, text: `${a.text}\n\nEvidence:\n${captured.map(c => `[${c.id}]\n${c.content}`).join('\n')}`.slice(0, 2000) } : a)

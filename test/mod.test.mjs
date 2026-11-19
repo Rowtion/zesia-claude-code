@@ -121,6 +121,40 @@ test('reply action submits online-window review prompt and surfaces prompt failu
   }
 });
 
+for (const quality of [
+  { deliveryKind: 'guidance', qualityStatus: 'not_reviewed' },
+  { deliveryKind: 'partial', qualityStatus: 'partial' },
+]) {
+  test(`Claude Code hands back ${quality.deliveryKind} with its actual review status`, async () => {
+    const { calls, run, close } = await harness({ response: {
+      ...quality,
+      format: 'zesia.consult.v0',
+      advice: 'Fixture result text.',
+      consultId: 'classified-result',
+      a2a: { contextId: 'ctx-fixture', messageId: 'msg-fixture' },
+    } });
+    try {
+      const prepared = await run('zesia_consult', { project: 'fixtures', brief: 'Review the update.', context: {} });
+      await approveBridge(prepared.structuredContent.url);
+      const draftId = prepared.structuredContent.draftId;
+      for (const name of ['zesia_wait', 'zesia_result']) {
+        const result = await run(name, name === 'zesia_wait' ? { draftId, seconds: 5 } : { draftId });
+        assert.equal(result.structuredContent.consultId, 'classified-result');
+        assert.equal(result.structuredContent.advice, 'Fixture result text.');
+        if (quality.deliveryKind === 'guidance') {
+          assert.match(result.content[0].text, /No expert review was completed/);
+          assert.doesNotMatch(result.content[0].text, /zesia_feedback|zesia_followup/);
+        } else {
+          assert.match(result.content[0].text, /Partial review/);
+        }
+      }
+      assert.equal(calls.network, 1);
+    } finally {
+      await close();
+    }
+  });
+}
+
 test('zesia_consult opens shared online bridge with zero network calls and zesia_wait retrieves result', async () => {
   const { calls, run, close } = await harness();
   try {

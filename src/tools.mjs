@@ -140,6 +140,10 @@ function renderOnlineReview(value) {
   };
 }
 
+function isServiceGuidance(result) {
+  return result?.deliveryKind === 'guidance' || result?.qualityStatus === 'not_reviewed';
+}
+
 function renderResult(value) {
   if (value.pending) {
     return {
@@ -158,6 +162,15 @@ function renderResult(value) {
       ],
       structuredContent: value,
       isError: true,
+    };
+  }
+  if (isServiceGuidance(value)) {
+    return {
+      content: [
+        { type: 'text', text: 'Service guidance only. No expert review was completed. Present the guidance in that capacity and keep the original request reference.' },
+        { type: 'text', text: JSON.stringify(value) },
+      ],
+      structuredContent: value,
     };
   }
   const partial = value.qualityStatus === 'partial' ? 'Partial review: resolve reported quality warnings before relying on the plan. ' : '';
@@ -223,7 +236,7 @@ export function createTools({
   }
 
   async function recordCompleted(draftId, value) {
-    if (value?.ok && value.status === 'completed' && value.consultId) {
+    if (value?.ok && value.status === 'completed' && value.consultId && !isServiceGuidance(value)) {
       consultToDraft.set(value.consultId, draftId);
       const inspected = await portable.inspect(draftId).catch(() => null);
       completedResults.set(value.consultId, {

@@ -196,6 +196,8 @@ test('zesia_consult opens shared online bridge with zero network calls and zesia
     const ctx = await run('zesia_context', { consultId: 'c1' });
     assert.equal(ctx.structuredContent.round, 1);
     assert.equal(ctx.structuredContent.remainingRounds, 2);
+    assert.deepEqual(ctx.structuredContent.pendingFollowUp.map(question => question.id), ['q1']);
+    assert.equal(ctx.structuredContent.followUpState, undefined);
 
     const fb = await run('zesia_feedback', {
       consultId: 'c1',

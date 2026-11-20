@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as pause } from 'node:timers/promises';
 import { ADOPTION_INSTRUCTIONS } from '@zesia/runtime/tools';
-import { destinationOf, readConfig, REQUESTER } from '@zesia/runtime/config';
+import { destinationOf, readConfig, REQUESTER, saveConfig } from '@zesia/runtime/config';
 import { captureAttachments, captureEvidence, mergeAttachments, mergeEvidence, scanPacket } from '@zesia/runtime/evidence';
 import { createPortable } from '../node_modules/@zesia/runtime/runtime.mjs';
 import { openOnlineBrowser, startOnlineReview } from '../node_modules/@zesia/runtime/review/online.mjs';
@@ -205,6 +205,7 @@ export function createTools({
   const portable = createPortable({
     stateDir: resolvedStateDir,
     configuration: async () => await readConfiguration(),
+    saveConfiguration: saveConfig,
     consult: requestConsult,
     recover,
     now,

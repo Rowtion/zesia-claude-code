@@ -23,7 +23,7 @@ async function harness({ submitError = false, response, consultError } = {}) {
   const module = { exports: {} };
   vm.runInNewContext(built, { module, exports: module.exports, h: (type, props, ...children) => ({ type, props, children }) });
   const hooks = new Map();
-  module.exports.register((name, handler) => hooks.set(name, handler));
+  module.exports.register((name, match, handler) => hooks.set(name, handler || match));
 
   const calls = { network: 0, prompts: [], toasts: [] };
   const remote = createHttpServer(async (req, res) => {
@@ -65,9 +65,12 @@ async function harness({ submitError = false, response, consultError } = {}) {
   });
   const server = createServer({ tools });
   const scope = {
-    ui: { toast: (message, options) => calls.toasts.push({ message, options }) },
+    ui: {
+      toast: message => calls.toasts.push({ message }),
+      resolve: () => ({ Box: props => props, Button: props => props }),
+    },
     prompt: {
-      submit: async value => {
+      submit: async ({ text: value }) => {
         if (submitError) {
           submitError = false;
           throw new Error('Chat is unavailable.');
@@ -106,16 +109,23 @@ async function approveBridge(url) {
   return view;
 }
 
-test('reply action submits online-window review prompt and surfaces prompt failures', async () => {
+test('above-prompt action preserves existing UI and submits a local-review prompt only when pressed', async () => {
   const { hooks, scope, calls, close } = await harness({ submitError: true });
   try {
-    const actions = await hooks.get('assistant.message.actions')(scope, { role: 'assistant' });
-    assert.equal(actions.length, 1);
-    await actions[0].onClick();
-    assert.equal(calls.toasts[0].options.tone, 'error');
-    await actions[0].onClick();
+    const existing = { message: 'Existing host content' };
+    const draw = props => hooks.get('ui.render')(scope, { component: 'AbovePrompt', props }, async () => existing);
+    assert.equal(await draw({ isWorking: true }), existing);
+    assert.equal(await draw({ isCollapsed: true }), existing);
+    const { children: [beneath, button] } = await draw({});
+    assert.equal(beneath, existing);
+    assert.equal(button.key, 'zesia-review');
+    assert.equal(calls.prompts.length, 0);
+    await button.onPress();
+    assert.equal(calls.toasts[0].message, 'Could not start the Zesia review.');
+    await button.onPress();
     assert.equal(calls.prompts.length, 1);
     assert.match(calls.prompts[0], /https:\/\/zesia\.dev\/consult/);
+    assert.equal(calls.network, 0);
   } finally {
     await close();
   }

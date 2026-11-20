@@ -36,37 +36,46 @@ function parseToolValue(value: unknown): ConsultValue | null {
 }
 
 function isZesiaTool(tool: string): boolean {
-  return tool === 'zesia_consult'
-    || tool === 'zesia_followup'
-    || tool.startsWith('mcp__zesia__zesia_consult')
-    || tool.startsWith('mcp__zesia__zesia_followup')
+  return /^zesia_(consult|followup)$/.test(tool)
+    || /^mcp__(?:plugin_zesia-consult_)?zesia__zesia_(consult|followup)$/.test(tool)
 }
 
-export const register: Register = hook => {
-  hook('assistant.message.actions', async (ctx, message) => {
-    const label = message.role === 'assistant' ? 'Review with 则灵' : ''
-    if (!label) return []
-    return [{
-      id: 'zesia-review',
-      label,
-      onClick: async () => {
-        try {
-          await ctx.prompt.submit(REVIEW_PROMPT)
-        } catch (error) {
-          ctx.ui.toast(`Could not start review: ${error instanceof Error ? error.message : String(error)}`, { tone: 'error' })
-        }
-      },
-    }]
+export const register: Register = on => {
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const beneath = await next(e)
+    if (e.props.isWorking || e.props.isCollapsed || e.props.hasSurvey) return beneath
+
+    const { Box, Button } = $.ui.resolve(e)
+    return Box({
+      children: [
+        beneath,
+        Button({
+          key: 'zesia-review',
+          label: 'Review with 则灵',
+          onPress: async () => {
+            try {
+              await $.prompt.submit({ text: REVIEW_PROMPT })
+            } catch {
+              await $.ui.toast('Could not start the Zesia review.')
+            }
+          },
+        }),
+      ],
+    })
   })
 
-  hook('tool.call', async (ctx, call, next) => {
-    const outcome = await next()
-    if (!isZesiaTool(call.tool)) return outcome
+  on('tool.call', async ($, e, next) => {
+    const outcome = await next(e)
+    if (!isZesiaTool(e.tool)) return outcome
     const value = parseToolValue(outcome.result)
-    if (value?.status === 'awaiting_online_review') {
-      ctx.ui.toast('Review and approve in the shared zesia.dev/consult window.')
-    } else if (value?.ok === false) {
-      ctx.ui.toast(value.message || value.errorMessage || 'ZESIA preparation failed.', { tone: 'error' })
+    try {
+      if (value?.status === 'awaiting_online_review') {
+        await $.ui.toast('Review and approve in the shared zesia.dev/consult window.')
+      } else if (value?.ok === false) {
+        await $.ui.toast(value.message || value.errorMessage || 'Zesia preparation failed.')
+      }
+    } catch {
+      // A session without a notification surface still receives the tool result.
     }
     return outcome
   })

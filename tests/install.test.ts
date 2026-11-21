@@ -5,6 +5,11 @@ for (const surface of ['terminal', 'desktop'] as const) {
     test(surface + ' ' + columns + ' columns: the native button prepares a review', async ($, on) => {
       let submitted = ''
       let toolCalls = 0
+      // Older Mod test runners need an explicit host renderer beneath the plugin.
+      on('ui.render', ($, e) => {
+        const { Box } = $.ui.resolve(e)
+        return Box({ key: 'host-above-prompt', children: [] })
+      })
       on('prompt.submit', (_, e) => {
         submitted = e.text
         return { text: e.text }
@@ -24,6 +29,7 @@ for (const surface of ['terminal', 'desktop'] as const) {
           scroll: { offset: 0, bodyRows: 4 }, view: {} },
       })
       try {
+        expect(await ui.find({ key: 'host-above-prompt' })).toBeDefined()
         expect(await ui.find({ key: 'zesia-review' })).toBeDefined()
         expect(submitted).toBe('')
         await ui.press({ key: 'zesia-review' })

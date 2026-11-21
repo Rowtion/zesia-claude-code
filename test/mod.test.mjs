@@ -131,6 +131,20 @@ test('above-prompt action preserves existing UI and submits a local-review promp
   }
 });
 
+test('an unexpected host tool payload is returned even when the notification cannot be read', async () => {
+  const { hooks, scope, calls, close } = await harness();
+  try {
+    const outcome = { result: { content: { type: 'text' } } };
+    const result = await hooks.get('tool.call')(scope, {
+      tool: 'mcp__plugin_zesia-consult_zesia__zesia_consult',
+    }, async () => outcome);
+    assert.equal(result, outcome);
+    assert.deepEqual(calls.toasts, []);
+  } finally {
+    await close();
+  }
+});
+
 for (const quality of [
   { deliveryKind: 'guidance', qualityStatus: 'not_reviewed' },
   { deliveryKind: 'partial', qualityStatus: 'partial' },

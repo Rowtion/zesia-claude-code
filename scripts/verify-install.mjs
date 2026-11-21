@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { cp, mkdtemp, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
@@ -10,8 +10,10 @@ import { createInterface } from 'node:readline';
 const repo = resolve(import.meta.dirname, '..');
 const { version } = JSON.parse(await readFile(join(repo, 'package.json'), 'utf8'));
 const archive = process.argv[2] ? resolve(process.argv[2]) : join(repo, 'dist', `zesia-consult-claude-code-${version}.zip`);
+const previousArchive = process.argv[3] ? resolve(process.argv[3]) : null;
 const root = await mkdtemp(join(tmpdir(), 'zesia-install-acceptance-'));
 const extracted = join(root, 'package');
+const marketplace = previousArchive ? join(root, 'marketplace') : extracted;
 const configDir = join(root, 'claude-user');
 const work = join(root, 'empty-project');
 await mkdir(configDir); await mkdir(work);
@@ -171,19 +173,21 @@ try {
   const initial = JSON.parse(node('clean configuration has no token', [configure, '--show']));
   assert.equal(initial.tokenConfigured, false);
   assert.equal(initial.confirmBeforeSend, true);
-  claude('register marketplace in isolated user profile', ['plugin', 'marketplace', 'add', extracted, '--scope', 'user', '--json']);
+  let installedVersion = version;
+  if (previousArchive) {
+    command('extract previous release', 'unzip', ['-q', previousArchive, '-d', marketplace]);
+    installedVersion = JSON.parse(await readFile(join(marketplace, '.claude-plugin/plugin.json'), 'utf8')).version;
+    assert.notEqual(installedVersion, version, 'The upgrade fixture must have a different plugin version.');
+  }
+  claude('register marketplace in isolated user profile', ['plugin', 'marketplace', 'add', marketplace, '--scope', 'user', '--json']);
   claude('install distribution at user scope', ['plugin', 'install', 'zesia-consult@zesia', '--scope', 'user', '--json']);
   const list = JSON.parse(claude('discover installed version', ['plugin', 'list', '--json']));
   const plugin = list.find(value => value.id === 'zesia-consult@zesia');
-  assert.equal(plugin?.version, version);
+  assert.equal(plugin?.version, installedVersion);
   assert.equal(plugin.enabled, true);
   assert.ok(plugin.installPath.startsWith(configDir + '/'));
   const settings = JSON.parse(await readFile(join(configDir, 'settings.json'), 'utf8'));
   assert.equal(settings.theme, 'dark'); assert.equal(settings.language, 'English');
-  const inventory = claude('discover bundled commands, skills and tool bridge', ['plugin', 'details', 'zesia-consult@zesia']);
-  for (const name of ['zesia-consult-prepare', 'zesia-consult-evidence', 'zesia-consult-decision', 'zesia-consult-adopt', 'zesia-settings']) {
-    assert.ok(inventory.includes(name), `Missing component ${name}`);
-  }
   const synthetic = 'synthetic-install-acceptance-not-a-real-credential';
   const tokenFile = join(root, 'synthetic-token.txt');
   await writeFile(tokenFile, synthetic, { mode: 0o600 });
@@ -193,11 +197,30 @@ try {
   const shown = node('show settings without exposing token', [configure, '--show']);
   assert.ok(!shown.includes(synthetic));
   assert.equal(JSON.parse(shown).tokenConfigured, true);
-  const update = JSON.parse(claude('native update command', ['plugin', 'update', 'zesia-consult@zesia', '--json']));
-  assert.equal(update.outcome, 'ok'); assert.equal(update.newVersion, version);
+  if (previousArchive) {
+    await rename(marketplace, join(root, 'previous-marketplace'));
+    await cp(extracted, marketplace, { recursive: true });
+    claude('refresh marketplace with candidate version', ['plugin', 'marketplace', 'update', 'zesia', '--json']);
+  }
+  const update = JSON.parse(claude('native update command', ['plugin', 'update', 'zesia-consult@zesia', '--scope', 'user', '--json']));
+  assert.equal(update.outcome, 'ok');
+  assert.equal(update.oldVersion, installedVersion);
+  assert.equal(update.newVersion, version);
+  if (previousArchive) report.upgradedFrom = installedVersion;
   assert.equal(JSON.parse(await readFile(privateConfig, 'utf8')).token, synthetic);
-  claude('native UI event tests from extracted package', ['plugin', 'test', extracted]);
-  await verifyReview(join(extracted, 'src/server.mjs'), synthetic);
+  const updated = JSON.parse(claude('discover verified installation', ['plugin', 'list', '--json']))
+    .find(value => value.id === 'zesia-consult@zesia');
+  assert.equal(updated?.version, version);
+  assert.equal(updated.enabled, true);
+  assert.ok(updated.installPath.startsWith(configDir + '/'));
+
+  const inventory = claude('discover bundled commands, skills and tool bridge', ['plugin', 'details', 'zesia-consult@zesia']);
+  assert.match(inventory, /^\s*Skills \(\d+\).*\bzesia(?=,|\s*$)/m);
+  for (const name of ['zesia-consult-prepare', 'zesia-consult-evidence', 'zesia-consult-decision', 'zesia-consult-adopt', 'zesia-settings']) {
+    assert.ok(inventory.includes(name), `Missing component ${name}`);
+  }
+  claude('native UI event tests from installed package', ['plugin', 'test', updated.installPath]);
+  await verifyReview(join(updated.installPath, 'src/server.mjs'), synthetic);
   report.status = 'passed';
   report.scope = 'Clean local installation, native event tests and a synthetic loopback review with the pinned A2A CLI.';
 } catch (error) {

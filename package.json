@@ -1,6 +1,6 @@
 {
   "name": "@zesia/claude-code-plugin",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "private": true,
   "description": "则灵 independent consultation plugin for Claude Code",
   "type": "module",

@@ -67,8 +67,8 @@ export const register: Register = on => {
   on('tool.call', async ($, e, next) => {
     const outcome = await next(e)
     if (!isZesiaTool(e.tool)) return outcome
-    const value = parseToolValue(outcome.result)
     try {
+      const value = parseToolValue(outcome.result)
       if (value?.status === 'awaiting_online_review') {
         await $.ui.toast('Review and approve in the shared zesia.dev/consult window.')
       } else if (value?.ok === false) {

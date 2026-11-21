@@ -25,19 +25,14 @@ claude --plugin-dir ./zesia-consult
 
 ## 审阅与咨询
 
-点击输入框上方的咨询入口，或输入：
+点击输入框上方的 **Review with 则灵**，或从斜杠菜单选择插件的 `zesia` 命令。
 
-```text
-/zesia 重点检查回滚安全和重复投递。
-```
+1. 准备 Skill 整理问题、相关回复、证据和约束。
+2. `zesia_consult` 创建本地草稿，并打开 https://zesia.dev/consult 的统一审阅页。
+3. 核对资料、来源和接收地址。选择 **Approve & send** 后，本机运行时发送这份草稿。选择取消时，草稿留在本机。
+4. 原 Agent 用 `zesia_wait` 或 `zesia_result` 取回已保存的结果，判断建议并用 `zesia_feedback` 记录采纳决定。
 
-1. 准备 Skill 选择目标、相关回复、真实证据、尝试过的操作和限制条件。
-2. `zesia_consult` 只创建本地草稿，零网络请求，也不发送预检。
-3. 在面板审阅完整资料、来源归属和接收地址；确认后调用 `zesia_send`，取消则不发送。
-4. 发送工具核对本地草稿、已批准 hash、有效期及目的地址，只通过 A2A 发送这份已审阅原稿。
-5. 原 Agent 用 `zesia_result` 获取结果、判断建议，用 `zesia_feedback` 记录采纳决定，并继续用户任务。
-
-本插件始终要求确认，不提供自动发送模式。宿主的工具权限提示不能代替资料审阅。若结果已收到但回写聊天失败，使用 **Return result to chat**，不要再次咨询。
+每次发送均须在浏览器中确认。咨询中断时，用原草稿 ID 查询结果。
 
 `followUp.requests` 可以要求证据、澄清或用户决策。证据/决策 Skill 帮助收集回答，`zesia_followup` 准备新草稿供审阅。每轮重新确认；一次咨询最多三轮云端往返，每个父结果只准备一份追问草稿。失败或结果未知时不自动重试。
 
@@ -70,7 +65,7 @@ npm test
 npm run package
 ```
 
-- `hooks/register.tsx`：输入框入口与审阅面板。
+- `hooks/register.tsx` 显示咨询按钮和浏览器审阅提示。
 - `skills/`：准备、证据、决策、采纳四类 Skill。
 - `commands/`：`/zesia` 与 `/zesia-settings`。
 - `src/workflow.mjs`、`src/tools.mjs`：本地草稿与宿主工具接线。

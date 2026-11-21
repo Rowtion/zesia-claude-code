@@ -25,19 +25,14 @@ The production installation guide may point to an earlier verified archive. Sour
 
 ## Review and consult
 
-Use the ZESIA action above the composer or enter:
+Select **Review with 则灵** above the input field, or choose the plugin's `zesia` command from the slash menu.
 
-```text
-/zesia Review rollback safety and duplicate delivery.
-```
+1. The preparation Skill selects the question, relevant reply, evidence and constraints.
+2. `zesia_consult` creates a local draft and opens the shared review at https://zesia.dev/consult.
+3. Review the materials, source attribution and destination. The local runtime sends that exact draft when you select **Approve & send**. Cancelling keeps the draft local.
+4. The original agent retrieves the saved result with `zesia_wait` or `zesia_result`, assesses the advice, and records its decision with `zesia_feedback`.
 
-1. The preparation Skill selects the goal, relevant reply, actual evidence, attempted actions and constraints.
-2. `zesia_consult` creates a local draft with zero network requests, including zero preflight calls.
-3. Review the full materials, source attribution and destination in the panel. Confirm to call `zesia_send`, or cancel without sending.
-4. The send tool validates the stored draft, approved hash, expiry and destination. Only that reviewed draft is sent through A2A.
-5. The original agent retrieves the result with `zesia_result`, assesses the advice, records adoption decisions with `zesia_feedback`, and continues the user's work.
-
-Confirmation is always required; there is no automatic-send mode. A host tool permission prompt does not replace material review. If delivery back to chat fails after a result was received, use **Return result to chat** rather than consulting again.
+The browser review is required for each send. Use the original draft ID to check an interrupted consultation.
 
 `followUp.requests` can request evidence, clarification or a user decision. The evidence/decision Skills help gather the answer, and `zesia_followup` prepares another reviewable draft. Each round requires confirmation; a consultation allows at most three cloud rounds and one follow-up draft per parent result. Failed or unknown outcomes are not retried automatically.
 
@@ -70,7 +65,7 @@ npm test
 npm run package
 ```
 
-- `hooks/register.tsx`: composer action and review panel.
+- `hooks/register.tsx` renders the Consult button and reports browser review status.
 - `skills/`: preparation, evidence, decision and adoption Skills.
 - `commands/`: `/zesia` and `/zesia-settings`.
 - `src/workflow.mjs`, `src/tools.mjs`: local draft and host tool integration.
